@@ -3,7 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     "BookingStatus",
     {
       bookingStatus: {
-        type: DataTypes.STRING,
+        type: DataTypes.ENUM(["booked", "modified", "cancelled", "enquiry"]),
         allowNull: false,
         unique: true,
       },

@@ -18,21 +18,26 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
       },
+      guestName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      email: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      phoneNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       underscored: true,
+      timestamps: true,
     }
   );
 
   Reservation.associate = (models) => {
-    Reservation.belongsTo(models.Guest, {
-      foreignKey: {
-        name: "guestId",
-        allowNull: false,
-      },
-      onDelete: "RESTRICT",
-      onUpdate: "RESTRICT",
-    });
     Reservation.belongsTo(models.BookingStatus, {
       foreignKey: {
         name: "bookingStatusId",

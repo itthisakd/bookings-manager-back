@@ -1,13 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
   const Room = sequelize.define(
     "Room",
-    {
-      roomNumber: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
-    },
+    {},
     {
       underscored: true,
       timestamps: false,

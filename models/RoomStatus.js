@@ -3,7 +3,13 @@ module.exports = (sequelize, DataTypes) => {
     "RoomStatus",
     {
       roomStatus: {
-        type: DataTypes.STRING,
+        type: DataTypes.ENUM([
+          "idle",
+          "ready",
+          "occupied",
+          "cleaning",
+          "closed",
+        ]),
         allowNull: false,
         unique: true,
       },

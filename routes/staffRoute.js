@@ -1,11 +1,14 @@
-// const express = require("express");
-// const staffController = require("../controllers/staffController");
+const express = require("express");
+const staffController = require("../controllers/staffController");
 
-// const router = express.Router();
+const router = express.Router();
 
-// router.get("/", staffController.getStaff);
-// router.post("/", staffController.createStaff);
-// router.put("/", staffController.updateStaff);
-// router.delete("/", staffController.deleteStaff);
+router.get("/", staffController.getStaff);
+router.post("/", staffController.createStaff);
+router.put("/", staffController.updateStaff);
 
-// module.exports = router;
+// router.get("/", staffController.protect, staffController.getStaff);
+// router.post("/", staffController.protect, staffController.createStaff);
+// router.put("/", staffController.protect, staffController.updateStaff);
+
+module.exports = router;
