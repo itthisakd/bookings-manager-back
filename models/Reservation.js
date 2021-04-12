@@ -30,6 +30,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      paymentSlip: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       underscored: true,
