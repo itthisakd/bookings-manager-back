@@ -1,24 +1,109 @@
 const { sequelize, Reservation, BookedNight } = require("../models");
 const { QueryTypes } = require("sequelize");
+const { DateTime } = require("luxon");
+
+const organise = (arr) => {
+  let obj = arr.reduce((map, val) => {
+    if (!map[`${val.reservationId}-${val.num}`]) {
+      map[`${val.reservationId}-${val.num}`] = [];
+    }
+    map[`${val.reservationId}-${val.num}`].push(val);
+    return map;
+  }, {});
+
+  for (let prop in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+      let temp = {
+        reservationId: obj[prop][0].reservationId,
+        num: obj[prop][0].num,
+        type: obj[prop][0].type,
+        rate: obj[prop][0].rate,
+        checkIn: obj[prop][0].nightlyDate,
+        checkOut: DateTime.fromISO(obj[prop][obj[prop].length - 1].nightlyDate)
+          .plus({ days: 1 })
+          .toString(),
+      };
+      obj[prop] = temp;
+    }
+  }
+  return Object.values(obj);
+};
 
 exports.getReservations = async (req, res, next) => {
   try {
-    const result = await sequelize.query(
-      "SELECT r.id reservation_id, in_date, out_date, remarks, paid, b.booking_status, r.created_at, r.updated_at, guest_name, email, phone_number, s.name staff_name FROM reservations r JOIN booking_statuses b ON r.booking_status_id = b.id JOIN staffs s ON s.id = r.staff_id",
+    const details = await sequelize.query(
+      "SELECT r.id id, in_date checkIn, out_date checkOut, remarks, paid, b.booking_status status, r.created_at createdAt, r.updated_at updatedAt, guest_name guest, email, phone_number phoneNumber, s.name staff FROM reservations r JOIN booking_statuses b ON r.booking_status_id = b.id JOIN staffs s ON s.id = r.staff_id",
       { type: QueryTypes.SELECT }
     );
+
+    const bookedNights = await sequelize.query(
+      "SELECT reservation_id reservationId, room_id roomNum, nightly_date nightlyDate  FROM booked_nights bn  ",
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const amount = await sequelize.query(
+      "SELECT reservation_id reservationId, sum(rate) amount  FROM booked_nights bn JOIN rooms r ON room_id = r.id JOIN room_types rt ON r.room_type_id = rt.id GROUP BY reservation_id",
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const rooms = await sequelize.query(
+      "SELECT reservation_id reservationId, room_id num, nightly_date nightlyDate, rt.name type, rate FROM booked_nights bn JOIN rooms r ON bn.room_id = r.id JOIN room_types rt ON rt.id = r.room_type_id ORDER BY reservationId, num, nightlyDate",
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const result = details.map((detail) => {
+      return {
+        ...detail,
+        amount: amount.filter((amt) => amt.reservationId === detail.id)[0]
+          .amount,
+        bookedNights: bookedNights.filter(
+          (night) => night.reservationId === detail.id
+        ),
+        rooms: organise(rooms).filter(
+          (room) => room.reservationId === detail.id
+        ),
+      };
+    });
     res.status(200).json({ result });
   } catch (err) {
     next(err);
   }
 };
 
-exports.getEnquiries = async (req, res, next) => {
+exports.patchDetails = async (req, res, next) => {
   try {
-    const result = await sequelize.query(
-      'SELECT r.id reservation_id, in_date, out_date, remarks, paid, b.booking_status, r.created_at, r.updated_at, guest_name, email, phone_number, s.name staff_name FROM reservations r JOIN booking_statuses b ON r.booking_status_id = b.id JOIN staffs s ON s.id = r.staff_id WHERE booking_status = "enquiry"',
-      { type: QueryTypes.SELECT }
-    );
+    const { id, remarks, booking_status_id } = req.body;
+    let result;
+    if (remarks) {
+      result = await sequelize.query(
+        `UPDATE reservations SET remarks = "${remarks}" WHERE id = ${id}`,
+        { type: QueryTypes.UPDATE }
+      );
+    } else if (booking_status_id) {
+      result = await sequelize.query(
+        `UPDATE reservations SET booking_status_id = "${booking_status_id}" WHERE id = ${id}`,
+        { type: QueryTypes.UPDATE }
+      );
+    }
+
+    res.status(200).json({ result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.createEnquiry = async (req, res, next) => {
+  try {
+    const { id, remarks, booking_status_id } = req.body;
+
+    await sequelize.query(``, { type: QueryTypes.CREATE });
+
     res.status(200).json({ result });
   } catch (err) {
     next(err);

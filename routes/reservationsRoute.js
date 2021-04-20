@@ -4,11 +4,18 @@ const staffController = require("../controllers/staffController");
 
 const router = express.Router();
 
-// router.get(
-//   "/",
-//   staffController.protect,
-//   reservationsController.getReservations
-// );
+router.get(
+  "/",
+  // staffController.protect,
+  reservationsController.getReservations
+);
+
+router.patch(
+  "/",
+  // staffController.protect,
+  reservationsController.patchDetails
+);
+
 // router.get(
 //   "/enquiry",
 //   staffController.protect,
