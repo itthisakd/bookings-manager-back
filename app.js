@@ -27,9 +27,7 @@ app.use((req, res) => {
 
 // app.use(errorMiddleware);
 
-// sequelize
-//   .sync({ alter: true, force: false })
-//   .then(() => console.log("DB Sync"));
+// sequelize.sync().then(() => console.log("DB Sync"));
 
 const port = process.env.PORT || 8000;
 app.listen(port, () => console.log(`server running on port ${port}`));

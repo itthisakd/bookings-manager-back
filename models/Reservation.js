@@ -2,6 +2,14 @@ module.exports = (sequelize, DataTypes) => {
   const Reservation = sequelize.define(
     "Reservation",
     {
+      guest: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      status: {
+        type: DataTypes.ENUM("booked", "modified", "cancelled", "enquiry"),
+        allowNull: true,
+      },
       inDate: {
         type: DataTypes.DATEONLY,
         allowNull: false,
@@ -16,10 +24,6 @@ module.exports = (sequelize, DataTypes) => {
       },
       paid: {
         type: DataTypes.BOOLEAN,
-        allowNull: false,
-      },
-      guestName: {
-        type: DataTypes.STRING,
         allowNull: false,
       },
       email: {
@@ -42,14 +46,6 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Reservation.associate = (models) => {
-    Reservation.belongsTo(models.BookingStatus, {
-      foreignKey: {
-        name: "bookingStatusId",
-        allowNull: false,
-      },
-      onDelete: "RESTRICT",
-      onUpdate: "RESTRICT",
-    });
     Reservation.belongsTo(models.Staff, {
       foreignKey: {
         name: "staffId",

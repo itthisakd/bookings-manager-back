@@ -16,16 +16,18 @@ router.patch(
   reservationsController.patchDetails
 );
 
-// router.get(
-//   "/enquiry",
-//   staffController.protect,
-//   reservationsController.getEnquiries
-// );
-// router.post(
-//   "/",
-//   staffController.protect,
-//   reservationsController.createReservation
-// );
+router.post(
+  "/",
+  // staffController.protect,
+  reservationsController.createEnquiry
+);
+
+router.get(
+  "/vacancy",
+  // staffController.protect,
+  reservationsController.getAllBookedNights
+);
+
 // router.put(
 //   "/",
 //   staffController.protect,

@@ -1,7 +1,13 @@
 module.exports = (sequelize, DataTypes) => {
   const Room = sequelize.define(
     "Room",
-    {},
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: false,
+        primaryKey: true,
+      },
+    },
     {
       underscored: true,
       timestamps: false,
@@ -12,14 +18,6 @@ module.exports = (sequelize, DataTypes) => {
     Room.belongsTo(models.RoomType, {
       foreignKey: {
         name: "roomTypeId",
-        allowNull: false,
-      },
-      onDelete: "RESTRICT",
-      onUpdate: "RESTRICT",
-    });
-    Room.belongsTo(models.RoomStatus, {
-      foreignKey: {
-        name: "roomStatusId",
         allowNull: false,
       },
       onDelete: "RESTRICT",
