@@ -6,6 +6,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATEONLY,
         allowNull: false,
       },
+      rate: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
     },
     {
       underscored: true,

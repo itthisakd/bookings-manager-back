@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+
 // const errorMiddleware = require("./middlewares/error");
 const staffController = require("./controllers/staffController");
 const staffRoute = require("./routes/staffRoute");
@@ -16,7 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // app.use("/staff", staffRoute);
-// app.use("/rates", ratesRoute);
+app.use("/rates", ratesRoute);
 app.use("/reservations", reservationsRoute);
 // app.use("/staff", staffRoute);
 // app.post("/login", staffController.login);

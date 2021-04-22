@@ -1,9 +1,10 @@
-const { RoomType } = require("../models/");
+const { RoomType, sequelize } = require("../models/");
+const { QueryTypes } = require("sequelize");
 
 exports.getRates = async (req, res, next) => {
   try {
-    const rates = await RoomType.findAll();
-    res.status(200).json({ rates });
+    const roomTypes = await RoomType.findAll();
+    res.status(200).json({ roomTypes });
   } catch (err) {
     next(err);
   }
@@ -13,30 +14,19 @@ exports.updateRates = async (req, res, next) => {
   try {
     const { updatedRates } = req.body;
 
-    updatedRates.forEach(async (rt, idx) => {
-      await RoomType.update(
-        {
-          rate: rt.rate,
-        },
-        { where: { id: rt.id } }
-      );
-    });
-    res.status(200).json({ message: "Updated Successfully" });
+    const updateAllRates = await Promise.all(
+      updatedRates.map(async (type) => {
+        await sequelize.query(
+          `UPDATE room_types SET rate=${type.rate} WHERE id = ${type.id}`,
+          {
+            type: QueryTypes.UPDATE,
+          }
+        );
+      })
+    );
+
+    res.status(200).json({ message: "Updated rates Successfully" });
   } catch (err) {
     next(err);
   }
 };
-
-//BODY TO UPDATE RATES:
-// {
-//     "updatedRates": [
-//         {
-//             "id": 1,
-//             "rate": 1099
-//         },
-//         {
-//             "id": 2,
-//             "rate": 1299
-//         }
-//     ]
-// }

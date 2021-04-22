@@ -1,33 +1,14 @@
-const { sequelize } = require("../models");
+const { organise } = require("../utilities/organise");
+const { sortNights } = require("../utilities/sortNights");
+const {
+  sequelize,
+  BookedNight,
+  Reservation,
+  Room,
+  RoomType,
+} = require("../models");
 const { QueryTypes } = require("sequelize");
 const { DateTime } = require("luxon");
-
-const organise = (arr) => {
-  let obj = arr.reduce((map, val) => {
-    if (!map[`${val.reservationId}-${val.num}`]) {
-      map[`${val.reservationId}-${val.num}`] = [];
-    }
-    map[`${val.reservationId}-${val.num}`].push(val);
-    return map;
-  }, {});
-
-  for (let prop in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-      let temp = {
-        reservationId: obj[prop][0].reservationId,
-        num: obj[prop][0].num,
-        type: obj[prop][0].type,
-        rate: obj[prop][0].rate,
-        checkIn: obj[prop][0].nightlyDate,
-        checkOut: DateTime.fromISO(obj[prop][obj[prop].length - 1].nightlyDate)
-          .plus({ days: 1 })
-          .toString(),
-      };
-      obj[prop] = temp;
-    }
-  }
-  return Object.values(obj);
-};
 
 exports.getReservations = async (req, res, next) => {
   try {
@@ -37,21 +18,21 @@ exports.getReservations = async (req, res, next) => {
     );
 
     const bookedNights = await sequelize.query(
-      "SELECT reservation_id reservationId, room_id roomNum, nightly_date nightlyDate  FROM booked_nights bn  ",
+      "SELECT reservation_id reservationId, room_id roomNum, nightly_date nightlyDate, rate FROM booked_nights bn  ",
       {
         type: QueryTypes.SELECT,
       }
     );
 
     const amount = await sequelize.query(
-      "SELECT reservation_id reservationId, sum(rate) amount FROM booked_nights bn JOIN rooms r ON room_id = r.id JOIN room_types rt ON r.room_type_id = rt.id GROUP BY reservation_id",
+      "SELECT reservation_id reservationId, sum(rate) amount FROM booked_nights bn  GROUP BY reservation_id",
       {
         type: QueryTypes.SELECT,
       }
     );
 
     const rooms = await sequelize.query(
-      "SELECT reservation_id reservationId, room_id num, nightly_date nightlyDate, rt.name type, rate FROM booked_nights bn JOIN rooms r ON bn.room_id = r.id JOIN room_types rt ON rt.id = r.room_type_id ORDER BY reservationId, num, nightlyDate",
+      "SELECT reservation_id reservationId, room_id num, nightly_date nightlyDate, rt.name type, bn.rate FROM booked_nights bn JOIN rooms r ON bn.room_id = r.id JOIN room_types rt ON rt.id = r.room_type_id ORDER BY reservationId, num, nightlyDate",
       {
         type: QueryTypes.SELECT,
       }
@@ -60,9 +41,13 @@ exports.getReservations = async (req, res, next) => {
     const result = details.map((detail) => {
       return {
         ...detail,
-        amount: amount.filter((amt) => amt.reservationId === detail.id)[0]
-          .amount,
-        bookedNights: bookedNights.filter(
+        amount:
+          detail.status !== "cancelled"
+            ? amount.filter((amt) => amt.reservationId === detail.id)[0]?.amount
+            : Number(detail.remarks.split("Amount: ")[1].split(",")[0]).toFixed(
+                2
+              ),
+        bookedNights: bookedNights?.filter(
           (night) => night.reservationId === detail.id
         ),
         rooms: organise(rooms).filter(
@@ -70,8 +55,29 @@ exports.getReservations = async (req, res, next) => {
         ),
       };
     });
-    // console.log(" :>> ", amount[0]);
     res.status(200).json({ result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getVacancy = async (req, res, next) => {
+  try {
+    const nights = await sequelize.query(
+      "SELECT reservation_id reservationId, room_id roomNum, nightly_date nightlyDate  FROM booked_nights bn  ",
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const rooms = await sequelize.query(
+      "SELECT r.id num, rt.name type, rt.rate rate FROM rooms r JOIN room_types rt ON room_type_id = rt.id",
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    res.status(200).json({ rooms, bookedNights: sortNights(nights) });
   } catch (err) {
     next(err);
   }
@@ -111,14 +117,26 @@ exports.createEnquiry = async (req, res, next) => {
     } = req.body;
 
     const id = await sequelize.query(
-      `INSERT INTO reservations (guest, in_date, out_date, status, staff_id, paid, created_at, updated_at) VALUES ("${guest}", "${checkIn}", "${checkOut}", "${status}", "${staff_id}", 0, "${DateTime.now().toString()}", "${DateTime.now().toString()}");`,
+      `INSERT INTO reservations (guest, in_date, out_date, status, staff_id, paid, created_at, updated_at) VALUES ("${guest}", "${checkIn}", "${checkOut}", "${status}", "${staff_id}", 0, "${DateTime.now().toString()}", "${DateTime.now().toString()}")`,
       { type: QueryTypes.INSERT }
     );
 
+    const rooms = await sequelize.query(
+      `SELECT r.id num, rate from room_types rt JOIN rooms r ON r.room_type_id = rt.id`,
+      { type: QueryTypes.SELECT }
+    );
+
+    const newNightsChecked = nightsChecked.map((night) => {
+      return {
+        ...night,
+        rate: rooms.filter((room) => room.num === night.room)[0].rate,
+      };
+    });
+
     await sequelize.query(
-      `INSERT INTO booked_nights (nightly_date, room_id, reservation_id)
-      VALUES ${nightsChecked
-        .map((e) => `("${e.date}", "${e.room}", "${id[0]}")`)
+      `INSERT INTO booked_nights (nightly_date, rate, room_id, reservation_id)
+      VALUES ${newNightsChecked
+        .map((e) => `("${e.date}", "${e.rate}", "${e.room}", "${id[0]}")`)
         .join(", ")}`,
       { type: QueryTypes.INSERT }
     );
@@ -129,62 +147,25 @@ exports.createEnquiry = async (req, res, next) => {
   }
 };
 
-// TO CHECK VACANCY
-exports.getAllBookedNights = async (req, res, next) => {
+exports.deleteEnquiry = async (req, res, next) => {
   try {
-    const bookedNights = await sequelize.query(
-      `SELECT reservation_id reservationId, room_id roomId, nightly_date nightlyDate FROM booked_nights`,
-      { type: QueryTypes.SELECT }
-    );
-    res.status(200).json({ bookedNights });
+    const { id } = req.params;
+    await BookedNight.destroy({ where: { reservationId: id } });
+    await Reservation.destroy({ where: { id } });
+
+    res.status(204).json({ message: "Enquiry deleted successfully" });
   } catch (err) {
     next(err);
   }
 };
 
-exports.getBookedNightsById = async (req, res, next) => {
+exports.deleteNights = async (req, res, next) => {
   try {
-    const id = 1; //** CHANGE HERE */
-    const result = await sequelize.query(
-      `SELECT nightly_date, room_id, name room_name, rate FROM booked_nights bn JOIN rooms rs ON bn.room_id = rs.id JOIN room_types rt ON rt.id = rs.room_type_id WHERE bn.reservation id = ${id}`,
-      { type: QueryTypes.SELECT }
-    );
-    res.status(200).json({ result });
+    const { id } = req.params;
+    await BookedNight.destroy({ where: { reservationId: id } });
+
+    res.status(204).json({ message: "Enquiry deleted successfully" });
   } catch (err) {
     next(err);
   }
 };
-
-// exports.deleteReservation = async (req, res, next) => {
-//   try {
-//     const id = 1; //** CHANGE HERE */
-//     const resv = await Reservation.findOne({
-//       where: { id },
-//     });
-//     if (!resv)
-//       return res
-//         .status(400)
-//         .json({ message: "Reservation with such ID not found" });
-//     await Reservation.destroy({ where: { id } });
-//     res.status(204).json({ message: "Reservation deleted successfully" });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// exports.deleteBookedNightsById = async (req, res, next) => {
-//   try {
-//     const resId = 1; //** CHANGE HERE */
-//     const bookedRes = await BookedNight.findAll({
-//       where: { reservation_id: resId },
-//     });
-//     if (!bookedRes)
-//       return res
-//         .status(400)
-//         .json({ message: "Reservation with such ID not found" });
-//     await BookedNight.destroy({ where: { reservation_id: resId } });
-//     res.status(204).json({ message: "bookedNights deleted successfully" });
-//   } catch (err) {
-//     next(err);
-//   }
-// };

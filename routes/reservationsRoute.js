@@ -25,7 +25,19 @@ router.post(
 router.get(
   "/vacancy",
   // staffController.protect,
-  reservationsController.getAllBookedNights
+  reservationsController.getVacancy
+);
+
+router.delete(
+  "/enquiry/:id",
+  // staffController.protect,
+  reservationsController.deleteEnquiry
+);
+
+router.delete(
+  "/nights/:id",
+  // staffController.protect,
+  reservationsController.deleteNights
 );
 
 // router.put(
