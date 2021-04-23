@@ -1,3 +1,11 @@
+const cloudinary = require("cloudinary").v2;
+const fs = require("fs");
+cloudinary.config({
+  cloud_name: "itthisakd",
+  api_key: "161784557926796",
+  api_secret: "A_OyWIsFkAC_OeDer1w9dRYtEqg",
+});
+
 const { organise } = require("../utilities/organise");
 const { sortNights } = require("../utilities/sortNights");
 const {
@@ -9,6 +17,8 @@ const {
 } = require("../models");
 const { QueryTypes } = require("sequelize");
 const { DateTime } = require("luxon");
+const util = require("util");
+const upload = util.promisify(cloudinary.uploader.upload);
 
 exports.getReservations = async (req, res, next) => {
   try {
@@ -83,14 +93,50 @@ exports.getVacancy = async (req, res, next) => {
   }
 };
 
+exports.uploadFile = async (req, res, next) => {
+  try {
+    const result = await upload(req.file.path);
+    fs.unlinkSync(req.file.path);
+    const str = `"payment_slip="${result.secure_url}"`;
+
+    await sequelize.query(
+      `UPDATE reservations SET ${str}, updated_at="${DateTime.now().toString()}" WHERE id = ${id}`,
+      {
+        type: QueryTypes.UPDATE,
+      }
+    );
+
+    res.status(200).json({ message: "Updated reservation successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+//200 update
+//201 created
+//204 delete
+
 exports.patchDetails = async (req, res, next) => {
   try {
     const { id } = req.body;
+    console.log("req :>> ", req);
+    console.log("req.body :>> ", req.body);
+    console.log("req.file :>> ", req.file);
+
+    console.log("id", id);
     const objArr = Object.entries(req.body).slice(
       1,
       Object.entries(req.body).length
     );
-    const str = objArr.map((prop) => `${prop[0]}="${prop[1]}"`).join(", ");
+    let str = objArr.map((prop) => `${prop[0]}="${prop[1]}"`).join(", ");
+
+    console.log("str :>> ", str);
+    if (req.file) {
+      const result = await upload(req.file.path);
+      fs.unlinkSync(req.file.path);
+      str = str + `, payment_slip="${result.secure_url}"`;
+    }
+    console.log("NEWstr :>> ", str);
 
     await sequelize.query(
       `UPDATE reservations SET ${str}, updated_at="${DateTime.now().toString()}" WHERE id = ${id}`,

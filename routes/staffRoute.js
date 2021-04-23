@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get("/", staffController.getStaff);
 router.post("/", staffController.createStaff);
-router.put("/", staffController.updateStaff);
+router.patch("/", staffController.deactivateStaff);
 
 // router.get("/", staffController.protect, staffController.getStaff);
 // router.post("/", staffController.protect, staffController.createStaff);

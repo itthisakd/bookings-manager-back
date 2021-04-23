@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// app.use("/staff", staffRoute);
+app.use("/staff", staffRoute);
 app.use("/rates", ratesRoute);
 app.use("/reservations", reservationsRoute);
 // app.use("/staff", staffRoute);

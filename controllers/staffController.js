@@ -23,6 +23,18 @@ exports.protect = async (req, res, next) => {
   }
 };
 
+exports.me = (req, res, next) => {
+  const { id, username, name, position } = req.user;
+  res.status(200).json({
+    user: {
+      id,
+      username,
+      name,
+      position,
+    },
+  });
+};
+
 exports.login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
@@ -67,23 +79,27 @@ exports.getStaff = async (req, res, next) => {
 exports.createStaff = async (req, res, next) => {
   try {
     const { username, name, password, confirmPassword, staffNumber } = req.body;
+    console.log(req.body);
     if (password !== confirmPassword)
       return res
         .status(400)
         .json({ message: "Passwords entered do not match" });
 
-    // creates hashedPassword
     const hashedPassword = await bcrypt.hash(
       password,
       +process.env.BCRYPT_SALT
     );
-    // add to DB
-    await Staff.create({
-      username,
+    const user = await Staff.create({
+      username: username.toLowerCase(),
       name,
       staffNumber,
       position: "admin",
       password: hashedPassword,
+    });
+
+    const payload = { id: user.id, name, position, password };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: +process.env.JWT_EXPIRES_IN,
     });
 
     res.status(201).json({ message: "Account created successfully" });
@@ -92,29 +108,17 @@ exports.createStaff = async (req, res, next) => {
   }
 };
 
-exports.updateStaff = async (req, res, next) => {
+exports.deactivateStaff = async (req, res, next) => {
   try {
-    const { username, password, confirmPassword } = req.body;
-    if (password !== confirmPassword)
-      return res
-        .status(400)
-        .json({ message: "Passwords entered do not match" });
-
-    // creates hashedPassword
-    const hashedPassword = await bcrypt.hash(
-      password,
-      +process.env.BCRYPT_SALT
-    );
-    // add to DB
+    const { id, position } = req.body;
     await Staff.update(
       {
-        password: hashedPassword,
-        updateAt: new Date(),
+        position: "deactivated",
       },
-      { where: { username } }
+      { where: { id } }
     );
 
-    res.status(201).json({ message: "Password updated successfully" });
+    res.status(200).json({ message: "Staff deactivated successfully" });
   } catch (err) {
     next(err);
   }
