@@ -23,7 +23,7 @@ const upload = util.promisify(cloudinary.uploader.upload);
 exports.getReservations = async (req, res, next) => {
   try {
     const details = await sequelize.query(
-      "SELECT r.id id, in_date checkIn, out_date checkOut, remarks, paid, status, r.created_at createdAt, r.updated_at updatedAt, guest, email, phone_number phoneNumber, s.name staff FROM reservations r JOIN staffs s ON s.id = r.staff_id",
+      "SELECT r.id id, in_date checkIn, out_date checkOut, remarks, paid, status, r.created_at createdAt, r.updated_at updatedAt, guest, email, phone_number phoneNumber, s.name staff, payment_slip paymentSlip FROM reservations r JOIN staffs s ON s.id = r.staff_id",
       { type: QueryTypes.SELECT }
     );
 

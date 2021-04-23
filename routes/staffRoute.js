@@ -3,12 +3,13 @@ const staffController = require("../controllers/staffController");
 
 const router = express.Router();
 
-router.get("/", staffController.getStaff);
-router.post("/", staffController.createStaff);
-router.patch("/", staffController.deactivateStaff);
-
-// router.get("/", staffController.protect, staffController.getStaff);
-// router.post("/", staffController.protect, staffController.createStaff);
-// router.put("/", staffController.protect, staffController.updateStaff);
+router.get("/", staffController.protectAdmin, staffController.getStaff);
+router.post("/", staffController.protectAdmin, staffController.createStaff);
+router.patch(
+  "/",
+  staffController.protectAdmin,
+  staffController.deactivateStaff
+);
+router.get("/getroles", staffController.getRoles);
 
 module.exports = router;

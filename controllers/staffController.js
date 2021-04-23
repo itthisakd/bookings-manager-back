@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { Staff } = require("../models");
 
-exports.protect = async (req, res, next) => {
+exports.protectAdmin = async (req, res, next) => {
   try {
     let token = null;
     if (
@@ -14,7 +14,32 @@ exports.protect = async (req, res, next) => {
     if (!token) return res.status(401).json({ message: "Access unauthorized" });
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await Staff.findOne({ where: { id: payload.id } });
+    const user = await Staff.findOne({
+      where: { id: payload.id, position: "superadmin" },
+    });
+    if (!user) return res.status(400).json({ message: "user not found" });
+    req.user = user;
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.protectUser = async (req, res, next) => {
+  try {
+    let token = null;
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    )
+      token = req.headers.authorization.split(" ")[1]; // to get the access token from headers{authorization: "Bearer <token>"}
+
+    if (!token) return res.status(401).json({ message: "Access unauthorized" });
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await Staff.findOne({
+      where: { id: payload.id, position: "admin" },
+    });
     if (!user) return res.status(400).json({ message: "user not found" });
     req.user = user;
     next();
@@ -38,6 +63,8 @@ exports.me = (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
+    console.log("username :>> ", username);
+    console.log("password :>> ", password);
 
     const user = await Staff.findOne({ where: { username } });
     if (!user)
@@ -55,7 +82,7 @@ exports.login = async (req, res, next) => {
       id: user.id,
       username: user.username,
       name: user.name,
-      staffNumber: user.staffNumber,
+      position: user.position,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -68,6 +95,15 @@ exports.login = async (req, res, next) => {
 };
 
 exports.getStaff = async (req, res, next) => {
+  try {
+    const staffs = await Staff.findAll();
+    res.status(200).json({ staffs });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getRoles = async (req, res, next) => {
   try {
     const staffs = await Staff.findAll();
     res.status(200).json({ staffs });
@@ -95,11 +131,6 @@ exports.createStaff = async (req, res, next) => {
       staffNumber,
       position: "admin",
       password: hashedPassword,
-    });
-
-    const payload = { id: user.id, name, position, password };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: +process.env.JWT_EXPIRES_IN,
     });
 
     res.status(201).json({ message: "Account created successfully" });

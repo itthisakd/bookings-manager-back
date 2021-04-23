@@ -7,46 +7,39 @@ const router = express.Router();
 
 router.get(
   "/",
-  // staffController.protect,
+  staffController.protectUser,
   reservationsController.getReservations
 );
 
 router.patch(
   "/",
-  // staffController.protect,
+  staffController.protectUser,
   upload.single("image"),
   reservationsController.patchDetails
 );
 
 router.post(
   "/",
-  // staffController.protect,
+  staffController.protectUser,
   reservationsController.createEnquiry
 );
 
 router.get(
   "/vacancy",
-  // staffController.protect,
+  staffController.protectUser,
   reservationsController.getVacancy
 );
 
 router.delete(
   "/enquiry/:id",
-  // staffController.protect,
-  // uploadController.uploadSlip,
+  staffController.protectUser,
   reservationsController.deleteEnquiry
 );
 
 router.delete(
   "/nights/:id",
-  // staffController.protect,
+  staffController.protectUser,
   reservationsController.deleteNights
 );
-
-// router.put(
-//   "/",
-//   staffController.protect,
-//   reservationsController.updateReservation
-// );
 
 module.exports = router;
