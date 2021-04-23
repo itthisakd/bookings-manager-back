@@ -159,11 +159,11 @@ exports.createEnquiry = async (req, res, next) => {
       checkOut,
       nightsChecked,
       status,
-      staff_id,
+      staffId,
     } = req.body;
 
     const id = await sequelize.query(
-      `INSERT INTO reservations (guest, in_date, out_date, status, staff_id, paid, created_at, updated_at) VALUES ("${guest}", "${checkIn}", "${checkOut}", "${status}", "${staff_id}", 0, "${DateTime.now().toString()}", "${DateTime.now().toString()}")`,
+      `INSERT INTO reservations (guest, in_date, out_date, status, staff_id, paid, created_at, updated_at) VALUES ("${guest}", "${checkIn}", "${checkOut}", "${status}", "${staffId}", 0, "${DateTime.now().toString()}", "${DateTime.now().toString()}")`,
       { type: QueryTypes.INSERT }
     );
 
